@@ -1,0 +1,246 @@
+import Job from "../models/Job.js";
+import redis from '../config/redis.js';
+import Application from "../models/Application.js";
+
+const createJob = async (req, res) => {
+    try {
+        const { title, company, location, type, salaryMin, salaryMax, skills, description } = req.body;
+
+        const job = await Job.create({
+            title,
+            company,
+            location,
+            type,
+            salaryMin,
+            salaryMax,
+            skills,
+            description,
+            postedBy: req.user._id
+        });
+
+        const keys = await redis.keys('jobs:*');
+        if (keys.length > 0) {
+            await redis.del(...keys);
+        }
+
+        res.status(201).json({
+            message: 'Job Created Successfully',
+            job
+        });
+
+    } catch (error) {
+        res.status(500)
+            .json({
+                message: error.message
+            })
+    }
+};
+
+const getAllJobs = async (req, res) => {
+    try {
+        const { search, type, location, cursor, limit = 10 } = req.query;
+
+        const cacheKey = `jobs:${JSON.stringify(req.query)}`;
+
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+            console.log('Cache Hit: ', cacheKey);
+            return res.status(200).json(
+                JSON.parse(cached)
+            );
+        };
+
+        console.log('Cache Miss: ', cacheKey);
+
+        const query = {};
+        if (search) {
+            query.$text = { $search: search }
+        }
+        if (type) {
+            query.type = type
+        }
+        if (location) {
+            query.location = location
+        }
+        if (cursor) {
+            query._id = { $lt: cursor }
+        }
+
+        const jobs = await Job.find(query)
+            .populate('postedBy', 'name email')
+            .sort({ createdAt: -1 })
+            .limit(Number(limit));
+
+        const nextCursor = jobs.length === Number(limit) ? jobs[jobs.length - 1]._id : null;
+        const result = { jobs, nextCursor };
+
+        await redis.set(cacheKey, JSON.stringify(result), 'EX', 120);
+        res.status(200).json(result);
+
+    } catch (error) {
+        res.status(500).json({
+            message: error.message
+        })
+    }
+};
+
+const getJobById = async (req, res) => {
+    try {
+        const job = await Job.findById(req.params.id)
+            .populate('postedBy', 'name email');
+
+        if (!job) {
+            return res.status(404).json({
+                message: 'Job not found'
+            })
+        }
+
+        return res.status(200).json({
+            job
+        })
+
+    } catch (error) {
+        return res.status(500).json({
+            message: error.message
+        })
+    }
+};
+
+const updateJob = async (req, res) => {
+    try {
+        const job = await Job.findById(req.params.id);
+        if (!job) {
+            return res.status(404).json({
+                message: 'Job not found'
+            })
+        }
+
+        if (job.postedBy.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                message: 'Not Authorized to update this'
+            })
+        }
+
+        const updatedJob = await Job.findByIdAndUpdate(
+            req.params.id,
+            req.body,
+            { new: true, runValidators: true }
+        );
+
+        res.status(200).json({
+            message: 'Job Updated Successfully',
+            updatedJob
+        });
+
+    } catch (error) {
+        res.status(500)
+            .json({
+                message: error.message
+            })
+    }
+};
+
+const deleteJob = async (req, res) => {
+    try {
+        const job = await Job.findById(req.params.id);
+        if (!job) {
+            return res.status(404).json({
+                message: 'Job not found'
+            })
+        }
+
+        if (job.postedBy.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                message: 'You are not authorized to delete this'
+            })
+        }
+        await Application.deleteMany({ jobId: req.params.id });
+        await Job.findByIdAndDelete(req.params.id);
+
+        const keys = await redis.keys('jobs:*');
+        if (keys.length > 0) {
+            await redis.del(...keys);
+        }
+
+        res.status(200).json({
+            message: 'Job deleted successfully'
+        })
+
+    } catch (error) {
+        res.status(500).json({
+            message: error.message
+        })
+    }
+};
+
+const closeJob = async (req, res) => {
+    try {
+        const job = await Job.findById(req.params.id);
+
+        if (!job) {
+            return res.status(404).json({
+                message: 'Job not found'
+            })
+        }
+
+        if (job.postedBy.toString() !== req.user._id.toString()) {
+            return res
+                .status(403)
+                .json({
+                    message: 'Not Authorized'
+                })
+        }
+
+        await Job.findByIdAndUpdate(
+            req.params.id,
+            {
+                status: 'closed',
+                closedAt: new Date()
+            }
+        );
+
+        res.status(200).json({
+            message: 'Job Closed Successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            message: error.message
+        })
+    }
+};
+
+const deleteExpiredJobs = async () => {
+    try {
+        const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+
+        const expiredJobs = await Job.find({
+            status: 'closed',
+            closedAt: { $lt: threeDaysAgo }
+        });
+
+        console.log(`Found ${expiredJobs.length} expired jobs`);
+
+        const expiredJobIds = expiredJobs.map(j => j._id);
+
+        if (expiredJobIds.length > 0) {
+            await Application.deleteMany({ jobId: { $in: expiredJobIds } });
+            await Job.deleteMany({ _id: { $in: expiredJobIds } });
+            console.log(`Auto-deleted ${expiredJobIds.length} expired jobs and their applications`);
+        } else {
+            console.log('No expired jobs to delete');
+        }
+
+    } catch (error) {
+        console.log('Auto-delete error:', error.message);
+    }
+};
+
+export {
+    createJob,
+    getAllJobs,
+    getJobById,
+    updateJob,
+    deleteJob,
+    closeJob,
+    deleteExpiredJobs
+};
