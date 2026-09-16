@@ -1,0 +1,412 @@
+import { useState, useEffect } from 'react';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import API from '../api/axios';
+import { useAuth } from '../context/AuthContext';
+import ApplyModal from '../components/ApplyModel';
+
+const formatSalary = (min, max) => {
+    const fmt = (n) => n >= 100000
+        ? `₹${(n / 100000).toFixed(0)}L`
+        : `₹${n.toLocaleString()}`;
+    return `${fmt(min)} – ${fmt(max)} / year`;
+};
+
+const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    if (diff === 0) return 'Today';
+    if (diff === 1) return 'Yesterday';
+    if (diff < 7) return `${diff} days ago`;
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+};
+
+const formatDescription = (text) => {
+    if (!text) return null;
+    const lines = text.split('\n');
+    return lines.map((line, index) => {
+        const trimmed = line.trim();
+        if (!trimmed) return <div key={index} className="mb-sm" />;
+        if (trimmed.endsWith(':') && trimmed.length < 50) {
+            return (
+                <h3 key={index} className="text-headline-sm text-primary mt-lg mb-sm font-semibold">
+                    {trimmed}
+                </h3>
+            );
+        }
+        if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
+            return (
+                <div key={index} className="flex items-start gap-sm mb-xs">
+                    <span className="text-secondary mt-1 shrink-0">•</span>
+                    <span className="text-body-md text-on-surface-variant">
+                        {trimmed.replace(/^[-•*]\s*/, '')}
+                    </span>
+                </div>
+            );
+        }
+        if (/^\d+\./.test(trimmed)) {
+            const num = trimmed.match(/^(\d+)\./)[1];
+            const content = trimmed.replace(/^\d+\.\s*/, '');
+            return (
+                <div key={index} className="flex items-start gap-sm mb-xs">
+                    <span className="text-secondary font-semibold shrink-0 w-5">{num}.</span>
+                    <span className="text-body-md text-on-surface-variant">{content}</span>
+                </div>
+            );
+        }
+        if (trimmed.includes('**')) {
+            const parts = trimmed.split(/\*\*(.*?)\*\*/g);
+            return (
+                <p key={index} className="text-body-md text-on-surface-variant mb-sm">
+                    {parts.map((part, i) =>
+                        i % 2 === 1
+                            ? <strong key={i} className="text-primary font-semibold">{part}</strong>
+                            : part
+                    )}
+                </p>
+            );
+        }
+        return (
+            <p key={index} className="text-body-md text-on-surface-variant mb-sm">
+                {trimmed}
+            </p>
+        );
+    });
+};
+
+export default function JobDetail() {
+    const [job, setJob] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [showModal, setShowModal] = useState(false);
+    const [hasApplied, setHasApplied] = useState(false);
+
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const { user } = useAuth();
+
+    useEffect(() => {
+        fetchJob();
+        checkIfApplied();
+    }, [id]);
+
+    const fetchJob = async () => {
+        setLoading(true);
+        try {
+            const res = await API.get(`/jobs/${id}`);
+            setJob(res.data.job);
+        } catch (err) {
+            setError('Job not found or has been removed.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const checkIfApplied = async () => {
+        if (!user || user.role !== 'seeker') return;
+        try {
+            const res = await API.get('/applications/mine');
+            const applied = res.data.applications.some(
+                (app) => String(app.jobId?._id) === String(id)
+            );
+            setHasApplied(applied);
+        } catch (err) {
+            console.log('check failed:', err.message);
+        }
+    };
+
+    const handleDeleteJob = async () => {
+        if (!window.confirm('Are you sure you want to delete this job? This cannot be undone.')) return;
+        try {
+            await API.delete(`/jobs/${job._id}`);
+            navigate('/jobs');
+        } catch (err) {
+            alert('Failed to delete job');
+        }
+    };
+
+    const handleCloseJob = async () => {
+        if (!window.confirm('Close this job? Candidates will no longer be able to apply.')) return;
+        try {
+            await API.patch(`/jobs/${job._id}/close`);
+            setJob(prev => ({ ...prev, status: 'closed' }));
+        } catch (err) {
+            alert('Failed to close job');
+        }
+    };
+
+    const isJobPoster = user?.role === 'recruiter' &&
+        job?.postedBy &&
+        String(job.postedBy._id) === String(user.id);
+
+    return (
+        <div className="bg-surface text-on-surface min-h-screen flex flex-col">
+
+            <header className="bg-surface-container-lowest sticky top-0 z-50 border-b border-outline-variant shadow-sm w-full">
+                <nav className="flex justify-between items-center w-full px-md lg:px-lg max-w-[1280px] mx-auto h-16">
+                    <div className="flex items-center gap-xl">
+                        <Link to="/" className="text-headline-md font-bold text-primary">HireFlow</Link>
+                        <nav className="hidden md:flex gap-md items-center h-full">
+                            <Link to="/jobs" className="text-secondary font-semibold border-b-2 border-secondary pb-1 text-body-md">
+                                Find Jobs
+                            </Link>
+                        </nav>
+                    </div>
+                    <div className="flex items-center gap-sm">
+                        {user ? (
+                            <>
+                                <Link to="/dashboard" className="hidden sm:inline-flex px-md py-xs text-on-surface-variant hover:text-secondary text-body-sm">
+                                    Dashboard
+                                </Link>
+                                {user.role === 'recruiter' && (
+                                    <Link to="/post-job" className="bg-primary text-on-primary px-md py-base rounded-lg text-body-sm hover:opacity-90 transition-all">
+                                        Post a Job
+                                    </Link>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <Link to="/login" className="hidden sm:inline-flex px-md py-xs text-on-surface-variant hover:text-secondary text-body-sm">
+                                    Sign In
+                                </Link>
+                                <Link to="/register" className="bg-primary text-on-primary px-md py-base rounded-lg text-body-sm hover:opacity-90 transition-all">
+                                    Post a Job
+                                </Link>
+                            </>
+                        )}
+                    </div>
+                </nav>
+            </header>
+
+            <main className="flex-grow w-full max-w-[1280px] mx-auto px-md lg:px-lg py-lg">
+
+                {loading && (
+                    <div className="flex justify-center items-center py-xl">
+                        <span className="material-symbols-outlined animate-spin text-secondary text-[40px]">
+                            progress_activity
+                        </span>
+                    </div>
+                )}
+
+                {!loading && error && (
+                    <div className="text-center py-xl">
+                        <span className="material-symbols-outlined text-[64px] text-outline-variant">error</span>
+                        <p className="text-headline-sm text-on-surface-variant mt-md">{error}</p>
+                        <button
+                            onClick={() => navigate('/jobs')}
+                            className="mt-md bg-secondary text-on-secondary px-lg py-sm rounded-lg text-label-md hover:opacity-90"
+                        >
+                            Back to Jobs
+                        </button>
+                    </div>
+                )}
+
+                {!loading && job && (
+                    <>
+                        <nav className="flex items-center gap-xs mb-md text-on-surface-variant">
+                            <Link to="/jobs" className="hover:text-secondary transition-colors text-label-md">Jobs</Link>
+                            <span className="material-symbols-outlined text-sm">chevron_right</span>
+                            <span className="text-label-md text-primary">{job.title}</span>
+                        </nav>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+
+                            <div className="lg:col-span-8">
+                                <div className="bg-surface-container-lowest rounded-xl p-md lg:p-lg border border-outline-variant shadow-sm">
+
+                                    <div className="mb-lg border-b border-surface-container pb-lg">
+                                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-md mb-md">
+                                            <div>
+                                                <div className="flex items-center gap-sm mb-xs">
+                                                    <h1 className="text-headline-xl text-primary">{job.title}</h1>
+                                                    {job.status === 'closed' && (
+                                                        <span className="bg-red-100 text-red-700 px-sm py-xs rounded-full text-label-sm font-semibold">
+                                                            Closed
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-sm">
+                                                    <span className="text-secondary font-semibold text-headline-sm">{job.company}</span>
+                                                    <span className="text-on-surface-variant">•</span>
+                                                    <span className="text-on-surface-variant text-body-sm">Posted {formatDate(job.createdAt)}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <article className="job-content">
+                                        <div className="description-content">
+                                            {formatDescription(job.description)}
+                                        </div>
+                                        <div className="mt-lg">
+                                            <h2 className="mb-md">Required Skills</h2>
+                                            <div className="flex flex-wrap gap-xs">
+                                                {job.skills.map((skill, index) => (
+                                                    <span
+                                                        key={index}
+                                                        className="bg-surface-container-high text-on-surface px-md py-xs rounded-full text-label-md border border-outline-variant hover:bg-secondary-fixed transition-colors cursor-default"
+                                                    >
+                                                        {skill}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </article>
+                                </div>
+                            </div>
+
+                            <aside className="lg:col-span-4 space-y-md">
+                                <div className="bg-surface-container-lowest rounded-xl p-md lg:p-lg border border-outline-variant shadow-sm sticky top-24">
+
+                                    <div className="mb-lg space-y-md">
+                                        <div className="flex items-start gap-md">
+                                            <div className="bg-primary-fixed p-sm rounded-lg">
+                                                <span className="material-symbols-outlined text-primary">location_on</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-on-surface-variant text-label-md uppercase tracking-wider">Location</p>
+                                                <p className="text-primary text-headline-sm">{job.location}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-md">
+                                            <div className="bg-primary-fixed p-sm rounded-lg">
+                                                <span className="material-symbols-outlined text-primary">work</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-on-surface-variant text-label-md uppercase tracking-wider">Job Type</p>
+                                                <p className="text-primary text-headline-sm capitalize">{job.type}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-md">
+                                            <div className="bg-primary-fixed p-sm rounded-lg">
+                                                <span className="material-symbols-outlined text-primary">payments</span>
+                                            </div>
+                                            <div>
+                                                <p className="text-on-surface-variant text-label-md uppercase tracking-wider">Salary Range</p>
+                                                <p className="text-primary text-headline-sm">{formatSalary(job.salaryMin, job.salaryMax)}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {isJobPoster ? (
+                                        <div className="space-y-sm">
+
+                                            <Link
+                                                to={`/recruiter/jobs/${job._id}/applicants`}
+                                                className="w-full bg-secondary text-on-secondary py-md rounded-lg font-bold text-body-md shadow-md hover:opacity-95 transition-all flex items-center justify-center gap-xs"
+                                            >
+                                                <span className="material-symbols-outlined text-[20px]">people</span>
+                                                View Applicants
+                                            </Link>
+
+                                            <Link
+                                                to={`/jobs/${job._id}/edit`}
+                                                className="w-full border border-secondary text-secondary py-sm rounded-lg font-bold text-body-md flex items-center justify-center gap-xs hover:bg-secondary hover:text-on-secondary transition-all"
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">edit</span>
+                                                Edit Job
+                                            </Link>
+
+                                            {job.status !== 'closed' ? (
+                                                <button
+                                                    className="w-full border border-orange-300 text-orange-500 py-sm rounded-lg font-bold text-body-md flex items-center justify-center gap-xs hover:bg-orange-500 hover:text-white transition-all"
+                                                    onClick={handleCloseJob}
+                                                >
+                                                    <span className="material-symbols-outlined text-[18px]">block</span>
+                                                    Close Applications
+                                                </button>
+                                            ) : (
+                                                <div className="w-full bg-surface-container text-on-surface-variant py-sm rounded-lg text-label-md flex items-center justify-center gap-xs cursor-default">
+                                                    <span className="material-symbols-outlined text-[18px]">block</span>
+                                                    Applications Closed
+                                                </div>
+                                            )}
+
+                                            <button
+                                                className="w-full border border-red-300 text-red-500 py-sm rounded-lg font-bold text-body-md flex items-center justify-center gap-xs hover:bg-red-500 hover:text-white transition-all"
+                                                onClick={handleDeleteJob}
+                                            >
+                                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                                                Delete Job
+                                            </button>
+
+                                        </div>
+
+                                    ) : job.status === 'closed' ? (
+                                        <div className="w-full bg-surface-container text-on-surface-variant py-md rounded-lg text-body-md flex items-center justify-center gap-xs mb-md cursor-default">
+                                            <span className="material-symbols-outlined text-[20px]">block</span>
+                                            Applications Closed
+                                        </div>
+
+                                    ) : hasApplied ? (
+                                        <div className="w-full bg-tertiary-fixed text-on-tertiary-fixed py-md rounded-lg font-bold text-body-md flex items-center justify-center gap-xs mb-md cursor-default">
+                                            <span className="material-symbols-outlined text-[20px]">check_circle</span>
+                                            Applied
+                                        </div>
+
+                                    ) : (
+                                        <button
+                                            className="w-full bg-secondary text-on-secondary py-md rounded-lg font-bold text-body-md shadow-md hover:shadow-lg hover:opacity-95 active:scale-[0.98] transition-all mb-md"
+                                            onClick={() => {
+                                                if (!user) navigate('/login');
+                                                else setShowModal(true);
+                                            }}
+                                        >
+                                            Apply Now
+                                        </button>
+                                    )}
+
+                                    {job.postedBy && (
+                                        <div className="mt-lg pt-lg border-t border-surface-container">
+                                            <p className="text-on-surface-variant text-label-md uppercase tracking-wider mb-md">Posted By</p>
+                                            <div className="flex items-center gap-md">
+                                                <div className="w-12 h-12 rounded-full bg-secondary flex items-center justify-center text-on-secondary font-bold text-headline-sm">
+                                                    {job.postedBy.name?.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <p className="text-primary text-headline-sm">{job.postedBy.name}</p>
+                                                    <p className="text-on-surface-variant text-body-sm">{job.postedBy.email}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                </div>
+                            </aside>
+                        </div>
+                    </>
+                )}
+            </main>
+
+            <footer className="bg-primary mt-lg w-full">
+                <div className="flex flex-col md:flex-row justify-between items-center w-full px-md lg:px-lg py-lg max-w-[1280px] mx-auto">
+                    <div className="mb-md md:mb-0">
+                        <span className="text-headline-sm font-bold text-on-primary">HireFlow</span>
+                        <p className="text-on-primary opacity-80 text-body-sm mt-xs">© 2024 HireFlow. All rights reserved.</p>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-md">
+                        <a className="text-on-primary opacity-80 hover:opacity-100 transition-opacity text-body-sm" href="/">About Us</a>
+                        <a className="text-on-primary opacity-80 hover:opacity-100 transition-opacity text-body-sm" href="/">Terms of Service</a>
+                        <a className="text-on-primary opacity-80 hover:opacity-100 transition-opacity text-body-sm" href="/">Privacy Policy</a>
+                        <a className="text-on-primary opacity-80 hover:opacity-100 transition-opacity text-body-sm" href="/">Help Center</a>
+                        <a className="text-on-primary opacity-80 hover:opacity-100 transition-opacity text-body-sm" href="/">Contact</a>
+                    </div>
+                </div>
+            </footer>
+
+            {/* ── APPLY MODAL ── */}
+            {showModal && (
+                <ApplyModal
+                    jobId={job._id}
+                    jobTitle={job.title}
+                    onClose={() => setShowModal(false)}
+                    onSuccess={() => {
+                        setShowModal(false);
+                        setHasApplied(true);
+                    }}
+                />
+            )}
+
+        </div>
+    );
+}
