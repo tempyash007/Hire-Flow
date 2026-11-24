@@ -92,7 +92,9 @@ export default function Jobs() {
             <header className="bg-surface-container-lowest sticky top-0 z-50 border-b border-outline-variant shadow-sm w-full">
                 <div className="flex justify-between items-center w-full px-md lg:px-lg max-w-[1280px] mx-auto h-16">
                     <div className="flex items-center gap-xl">
-                        <Link to="/" className="text-headline-md font-bold text-primary">HireFlow</Link>
+                        <Link to={user ? "/dashboard" : "/"} className="text-xl font-bold text-primary">
+                            HireFlow
+                        </Link>
                         <nav className="hidden md:flex gap-md items-center h-full">
                             <Link to="/jobs" className="text-secondary font-semibold border-b-2 border-secondary pb-1 text-body-md">
                                 Find Jobs
@@ -245,8 +247,8 @@ export default function Jobs() {
                                 <div
                                     key={job._id}
                                     className={`bg-surface-container-lowest border rounded-xl p-md shadow-sm job-card-hover group ${job.status === 'closed'
-                                            ? 'border-red-200 opacity-75'
-                                            : 'border-outline-variant'
+                                        ? 'border-red-200 opacity-75'
+                                        : 'border-outline-variant'
                                         }`}
                                 >
                                     <div className="flex justify-between items-start mb-sm">

@@ -73,7 +73,9 @@ export default function RecruiterDashboard() {
             <nav className="w-full top-0 sticky z-50 bg-surface-container-lowest border-b border-outline-variant shadow-sm">
                 <div className="flex justify-between items-center px-md py-sm max-w-[1280px] mx-auto h-16">
                     <div className="flex items-center gap-lg">
-                        <Link to="/" className="text-headline-md font-bold text-primary">HireFlow</Link>
+                        <Link to={user ? "/dashboard" : "/"} className="text-xl font-bold text-primary">
+                            HireFlow
+                        </Link>
                         <div className="hidden md:flex items-center gap-md">
                             <Link to="/dashboard" className="text-secondary border-b-2 border-secondary pb-1 text-label-md">Dashboard</Link>
                             <Link to="/jobs" className="text-on-surface-variant hover:text-secondary transition-colors text-label-md">Find Jobs</Link>

@@ -61,7 +61,9 @@ export default function SeekerDashboard() {
             <header className="w-full top-0 sticky bg-surface-container-lowest border-b border-outline-variant shadow-sm z-50">
                 <nav className="flex justify-between items-center px-md py-sm max-w-[1280px] mx-auto">
                     <div className="flex items-center gap-md">
-                        <Link to="/" className="text-headline-md font-bold text-primary">HireFlow</Link>
+                        <Link to={user ? "/dashboard" : "/"} className="text-xl font-bold text-primary">
+                            HireFlow
+                        </Link>
                         <div className="hidden md:flex items-center space-x-md ml-lg">
                             <Link to="/dashboard" className="text-label-md text-secondary border-b-2 border-secondary pb-1">Dashboard</Link>
                             <Link to="/jobs" className="text-label-md text-on-surface-variant hover:text-secondary transition-colors">Find Jobs</Link>

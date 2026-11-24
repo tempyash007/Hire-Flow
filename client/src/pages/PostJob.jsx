@@ -77,7 +77,9 @@ export default function PostJob() {
                 <div className="flex justify-between items-center w-full px-md lg:px-lg max-w-[1280px] mx-auto h-full">
 
                     <div className="flex items-center gap-xl">
-                        <Link to="/" className="text-headline-md font-bold text-primary">HireFlow</Link>
+                        <Link to={user ? "/dashboard" : "/"} className="text-xl font-bold text-primary">
+                            HireFlow
+                        </Link>
                         <nav className="hidden md:flex gap-md items-center h-full">
                             <Link to="/jobs" className="text-secondary font-semibold border-b-2 border-secondary pb-1 text-body-md">
                                 Find Jobs

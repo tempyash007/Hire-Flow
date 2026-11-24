@@ -144,7 +144,9 @@ export default function ApplicantsList() {
             <header className="fixed top-0 w-full bg-surface shadow-sm z-50">
                 <div className="flex justify-between items-center px-gutter h-16 max-w-[1280px] mx-auto">
                     <div className="flex items-center gap-lg">
-                        <Link to="/" className="text-headline-md font-bold text-primary">HireFlow</Link>
+                        <Link to={user ? "/dashboard" : "/"} className="text-xl font-bold text-primary">
+                            HireFlow
+                        </Link>
                         <nav className="hidden md:flex gap-md items-center">
                             <Link to="/jobs" className="text-body-md text-on-surface-variant hover:text-secondary transition-colors duration-200">Find Jobs</Link>
                             <Link to="/dashboard" className="text-body-md text-on-surface-variant hover:text-secondary transition-colors duration-200">Dashboard</Link>

@@ -21,54 +21,102 @@ const formatDate = (dateStr) => {
     return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
+const renderInlineBold = (text, keyPrefix = '') => {
+    const parts = text.split(/(\*\*.*?\*\*)/g);
+
+    return parts.map((part, index) => {
+        const isBold = part.startsWith('**') && part.endsWith('**');
+
+        return isBold ? (
+            <strong
+                key={`${keyPrefix}-${index}`}
+                className="text-primary font-semibold"
+            >
+                {part.slice(2, -2)}
+            </strong>
+        ) : (
+            part
+        );
+    });
+};
+
 const formatDescription = (text) => {
     if (!text) return null;
+
     const lines = text.split('\n');
+
     return lines.map((line, index) => {
         const trimmed = line.trim();
-        if (!trimmed) return <div key={index} className="mb-sm" />;
+
+        if (!trimmed) {
+            return <div key={index} className="mb-sm" />;
+        }
+        const boldHeadingMatch = trimmed.match(/^\*\*(.+?)\*\*:\s*$/);
+
+        if (boldHeadingMatch) {
+            return (
+                <h3
+                    key={index}
+                    className="text-headline-sm text-primary mt-lg mb-sm font-semibold"
+                >
+                    {boldHeadingMatch[1]}
+                </h3>
+            );
+        }
         if (trimmed.endsWith(':') && trimmed.length < 50) {
             return (
-                <h3 key={index} className="text-headline-sm text-primary mt-lg mb-sm font-semibold">
+                <h3
+                    key={index}
+                    className="text-headline-sm text-primary mt-lg mb-sm font-semibold"
+                >
                     {trimmed}
                 </h3>
             );
         }
-        if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
+        if (/^[-•*]\s+/.test(trimmed)) {
+            const content = trimmed.replace(/^[-•*]\s+/, '');
+
             return (
-                <div key={index} className="flex items-start gap-sm mb-xs">
-                    <span className="text-secondary mt-1 shrink-0">•</span>
+                <div
+                    key={index}
+                    className="flex items-start gap-sm mb-xs"
+                >
+                    <span className="text-secondary mt-1 shrink-0">
+                        •
+                    </span>
+
                     <span className="text-body-md text-on-surface-variant">
-                        {trimmed.replace(/^[-•*]\s*/, '')}
+                        {renderInlineBold(content, `bullet-${index}`)}
                     </span>
                 </div>
             );
         }
-        if (/^\d+\./.test(trimmed)) {
-            const num = trimmed.match(/^(\d+)\./)[1];
-            const content = trimmed.replace(/^\d+\.\s*/, '');
+        if (/^\d+\.\s+/.test(trimmed)) {
+            const numberMatch = trimmed.match(/^(\d+)\.\s+/);
+            const number = numberMatch[1];
+            const content = trimmed.replace(/^\d+\.\s+/, '');
+
             return (
-                <div key={index} className="flex items-start gap-sm mb-xs">
-                    <span className="text-secondary font-semibold shrink-0 w-5">{num}.</span>
-                    <span className="text-body-md text-on-surface-variant">{content}</span>
+                <div
+                    key={index}
+                    className="flex items-start gap-sm mb-xs"
+                >
+                    <span className="text-secondary font-semibold shrink-0 w-5">
+                        {number}.
+                    </span>
+
+                    <span className="text-body-md text-on-surface-variant">
+                        {renderInlineBold(content, `number-${index}`)}
+                    </span>
                 </div>
             );
         }
-        if (trimmed.includes('**')) {
-            const parts = trimmed.split(/\*\*(.*?)\*\*/g);
-            return (
-                <p key={index} className="text-body-md text-on-surface-variant mb-sm">
-                    {parts.map((part, i) =>
-                        i % 2 === 1
-                            ? <strong key={i} className="text-primary font-semibold">{part}</strong>
-                            : part
-                    )}
-                </p>
-            );
-        }
         return (
-            <p key={index} className="text-body-md text-on-surface-variant mb-sm">
-                {trimmed}
+            <p
+                key={index}
+                className="text-body-md text-on-surface-variant mb-sm"
+            >
+                {renderInlineBold(trimmed, `paragraph-${index}`)}
             </p>
         );
     });
@@ -145,7 +193,9 @@ export default function JobDetail() {
             <header className="bg-surface-container-lowest sticky top-0 z-50 border-b border-outline-variant shadow-sm w-full">
                 <nav className="flex justify-between items-center w-full px-md lg:px-lg max-w-[1280px] mx-auto h-16">
                     <div className="flex items-center gap-xl">
-                        <Link to="/" className="text-headline-md font-bold text-primary">HireFlow</Link>
+                        <Link to={user ? "/dashboard" : "/"} className="text-xl font-bold text-primary">
+                            HireFlow
+                        </Link>
                         <nav className="hidden md:flex gap-md items-center h-full">
                             <Link to="/jobs" className="text-secondary font-semibold border-b-2 border-secondary pb-1 text-body-md">
                                 Find Jobs

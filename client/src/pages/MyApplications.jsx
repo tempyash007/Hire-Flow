@@ -57,7 +57,9 @@ export default function MyApplications() {
                 <div className="flex justify-between items-center px-gutter h-16 max-w-[1280px] mx-auto">
 
                     <div className="flex items-center gap-lg">
-                        <Link to="/" className="text-headline-md font-bold text-primary">HireFlow</Link>
+                        <Link to={user ? "/dashboard" : "/"} className="text-xl font-bold text-primary">
+                            HireFlow
+                        </Link>
                         <nav className="hidden md:flex gap-md items-center h-full">
                             <Link to="/jobs" className="text-secondary font-semibold border-b-2 border-secondary pb-1 text-body-md">
                                 Find Jobs

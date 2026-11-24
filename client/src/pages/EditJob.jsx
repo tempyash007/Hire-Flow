@@ -112,7 +112,9 @@ export default function EditJob() {
             <header className="bg-surface-container-lowest border-b border-outline-variant shadow-sm sticky top-0 z-50 h-16 w-full">
                 <div className="flex justify-between items-center w-full px-md lg:px-lg max-w-[1280px] mx-auto h-full">
                     <div className="flex items-center gap-xl">
-                        <Link to="/" className="text-headline-md font-bold text-primary">HireFlow</Link>
+                        <Link to={user ? "/dashboard" : "/"} className="text-xl font-bold text-primary">
+                            HireFlow
+                        </Link>
                         <nav className="hidden md:flex items-center gap-md">
                             <Link to="/jobs" className="text-body-md text-on-surface-variant hover:text-secondary">Find Jobs</Link>
                             <Link to="/dashboard" className="text-body-md text-on-surface-variant hover:text-secondary">Dashboard</Link>
