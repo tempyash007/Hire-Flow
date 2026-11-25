@@ -73,37 +73,7 @@ export default function PostJob() {
     return (
         <div className="bg-surface text-on-surface min-h-screen flex flex-col">
 
-            <header className="bg-surface-container-lowest border-b border-outline-variant shadow-sm sticky top-0 z-50 h-16 w-full">
-                <div className="flex justify-between items-center w-full px-md lg:px-lg max-w-[1280px] mx-auto h-full">
-
-                    <div className="flex items-center gap-xl">
-                        <Link to={user ? "/dashboard" : "/"} className="text-xl font-bold text-primary">
-                            HireFlow
-                        </Link>
-                        <nav className="hidden md:flex gap-md items-center h-full">
-                            <Link to="/jobs" className="text-secondary font-semibold border-b-2 border-secondary pb-1 text-body-md">
-                                Find Jobs
-                            </Link>
-                        </nav>
-                    </div>
-
-                    <div className="flex items-center gap-md">
-                        <Link
-                            to="/dashboard"
-                            className="hidden sm:block text-on-surface-variant font-medium hover:text-secondary transition-colors"
-                        >
-                            Dashboard
-                        </Link>
-                        <Link
-                            to="/post-job"
-                            className="bg-secondary text-on-secondary px-md py-2 rounded-lg font-semibold hover:opacity-90 transition-all"
-                        >
-                            Post a Job
-                        </Link>
-                    </div>
-
-                </div>
-            </header>
+            
 
             <main className="flex-grow py-xl px-md">
                 <div className="max-w-4xl mx-auto">

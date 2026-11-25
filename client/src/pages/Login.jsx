@@ -32,32 +32,7 @@ export default function Login() {
     return (
         <div className="min-h-screen flex flex-col bg-surface text-on-surface">
 
-            <header className="bg-surface-container-lowest sticky top-0 border-b border-outline-variant shadow-sm z-50">
-                <nav className="flex justify-between items-center w-full px-md lg:px-lg max-w-[1280px] mx-auto h-16">
-
-                    <div className="flex items-center gap-xl">
-                        <span className="text-headline-md font-bold text-primary">HireFlow</span>
-                        <nav className="hidden md:flex gap-md items-center h-full">
-                            <Link to="/jobs" className="text-secondary font-semibold border-b-2 border-secondary pb-1 text-body-md">
-                                Find Jobs
-                            </Link>
-                        </nav>
-                    </div>
-
-                    <div className="flex items-center gap-md">
-                        <Link
-                            to="/login"
-                            className="hidden md:block text-body-md text-secondary hover:opacity-80 transition-opacity"
-                        >
-                            Sign In
-                        </Link>
-                        <button className="bg-secondary text-on-primary px-md py-sm rounded-lg text-label-md hover:opacity-90 active:scale-95 transition-all">
-                            Post a Job
-                        </button>
-                    </div>
-
-                </nav>
-            </header>
+            
 
             <main className="flex-grow flex items-center justify-center py-xl px-md">
 

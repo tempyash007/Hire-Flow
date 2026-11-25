@@ -33,31 +33,7 @@ export default function Register() {
     return (
         <div className="bg-surface text-on-surface min-h-screen flex flex-col">
 
-            <header className="bg-surface-container-lowest border-b border-outline-variant shadow-sm sticky top-0 z-50 h-16 w-full">
-                <nav className="flex justify-between items-center w-full px-md lg:px-lg max-w-[1280px] mx-auto h-full">
-
-                    <div className="text-headline-md font-bold text-primary">HireFlow</div>
-
-                    <nav className="hidden md:flex gap-md items-center h-full">
-                        <Link to="/jobs" className="text-secondary font-semibold border-b-2 border-secondary pb-1 text-body-md">
-                            Find Jobs
-                        </Link>
-                    </nav>
-
-                    <div className="flex gap-sm">
-                        <Link
-                            to="/login"
-                            className="px-md py-xs text-label-md text-secondary hover:opacity-80 transition-all"
-                        >
-                            Sign In
-                        </Link>
-                        <button className="bg-primary text-on-primary px-md py-xs rounded-lg text-label-md hover:opacity-90 transition-all shadow-sm">
-                            Post a Job
-                        </button>
-                    </div>
-
-                </nav>
-            </header>
+            
 
             <main className="flex-1 flex items-center justify-center px-gutter py-xl relative overflow-hidden">
 
